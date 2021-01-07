@@ -6,6 +6,8 @@
 
 > Intended to be used in cruise with the FlyJSim 732 & 722.
 
+[Download](https://github.com/olejorga/otto-throttle/releases)
+
 ## Requirements
 
 - [FlyWithLua](https://forums.x-plane.org/index.php?/files/file/38445-flywithlua-ng-next-generation-edition-for-x-plane-11-win-lin-mac/)
