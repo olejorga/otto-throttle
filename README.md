@@ -20,4 +20,4 @@ C:\<PATH TO XP>\X-Plane 11\Resources\plugins\FlyWithLua\Scripts\otto_throttle.lu
 
 ## Usage
 
-Can be toggled on or off via the plugins menu. `Plugins > FlyWithLua > FlyWithLua Macros > Engage OTTO THROTTLE`.
+Can be toggled on or off via the plugins menu. <br>`Plugins > FlyWithLua > FlyWithLua Macros > Engage OTTO THROTTLE`.
