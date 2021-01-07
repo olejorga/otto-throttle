@@ -6,7 +6,7 @@
 
 > Intended to be used in cruise with the FlyJSim 732 & 722.
 
-[Download](https://github.com/olejorga/otto-throttle/releases)
+[Download from GitHub](https://github.com/olejorga/otto-throttle/releases)
 
 ## Requirements
 
