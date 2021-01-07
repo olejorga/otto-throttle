@@ -1,6 +1,6 @@
 # Otto-throttle
 
-> Tired of manually adjusting your throttle in cruise, when all you want to do ismake a cup of coffee? Afraid something might go wrong, while you´re gone? Don´t worry! Otto is here to take care of you.
+> Tired of manually adjusting your throttle in cruise, when all you want to do is make a cup of coffee? Afraid something might go wrong, while you´re gone? Don´t worry! Otto is here to take care of you.
 
 > Otto-throttle is a basic auto-throttle script that adjusts your thrust, based on your selected speed.
 
