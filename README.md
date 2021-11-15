@@ -1,5 +1,5 @@
 # Otto-throttle
-A basic auto-throttle for X-Plane 11, written with love in lua <3
+A basic auto-throttle for X-Plane 11, written with love in Lua <3
 
 Tired of manually adjusting your throttle in cruise when all you want to do is make a cup of coffee? Afraid something might go wrong while you´re gone? Don´t worry! Otto is here to take care of you.
 
