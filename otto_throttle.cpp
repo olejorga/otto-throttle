@@ -2,20 +2,15 @@
 
 
 void adjust_thrust() {
-    return 0;
+    // TODO
 }
 
 
 void increase_thrust() {
-    return 0;
+    // TODO
 }
 
 
 void decrease_thrust() {
-    return 0;
-}
-
-
-int main() {
-    return 0;
+    // TODO
 }
