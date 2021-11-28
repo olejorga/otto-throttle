@@ -1,0 +1,6 @@
+[submodule "xplane_sdk"]
+	path = xplane_sdk
+	url = https://github.com/leecbaker/xplane_sdk
+[submodule "src/xplane_sdk"]
+	path = src/xplane_sdk
+	url = https://github.com/leecbaker/xplane_sdk

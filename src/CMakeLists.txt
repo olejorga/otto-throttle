@@ -1,0 +1,2 @@
+add_subdirectory(xplane_sdk)
+add_xplane_plugin(Otto Throttle otto_throttle.cpp)
