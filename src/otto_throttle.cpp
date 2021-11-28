@@ -1,5 +1,6 @@
 #include <string>
 #include <cstdlib>
+#include <cstring>
 
 #include "XPLMMenus.h"
 #include "XPLMDataAccess.h"
