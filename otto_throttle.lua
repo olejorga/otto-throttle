@@ -8,7 +8,7 @@
 
 
 -- Create a toggle button in the FlyWithLua macro context menu
-add_macro("Engage OTTO THROTTLE", "otto_throttle_on = true", "otto_throttle_on = false")
+add_macro("Engage O/T", "otto_throttle_on = true", "otto_throttle_on = false")
 
 
 -- Get the aircraft's current speed, target speed & the current sim rate
