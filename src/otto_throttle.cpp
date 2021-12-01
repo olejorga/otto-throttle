@@ -151,3 +151,4 @@ void decrease_thrust(float factor)
 		XPLMSetDataf(g_throttle_setting, (throttle_setting - factor));
 	}
 }
+// Test
