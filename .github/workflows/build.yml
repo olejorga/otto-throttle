@@ -43,7 +43,6 @@ jobs:
         mkdir build
         cd build
         cmake ..
-        cp Makefile makefile
         make
       
     - uses: actions/upload-artifact@v2
