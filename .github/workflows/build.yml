@@ -30,6 +30,8 @@ jobs:
       shell: bash
       run: |
         choco install git cmake
+        choco install mingw
+        echo "CMAKE_GENERATOR=MinGW Makefiles" >> $GITHUB_ENV
 
     - name: "Linux: Install dependency libraries"
       if: runner.os == 'Linux'
@@ -42,7 +44,6 @@ jobs:
       run: |
         mkdir build
         cd build
-        ls
         cmake ..
         ls
         make
