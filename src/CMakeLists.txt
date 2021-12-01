@@ -1,5 +1,5 @@
 project(otto_throttle CXX)
 cmake_minimum_required(VERSION 2.8)
 
-add_subdirectory(xplane_sdk)
+add_subdirectory(xplane_sdk bin/)
 add_xplane_plugin(otto_throttle 301 otto_throttle.cpp)
