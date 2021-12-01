@@ -18,7 +18,8 @@ jobs:
           - windows-latest
           - macos-latest
 
-    runs-on: ${{matrix.os}}
+    #runs-on: ${{matrix.os}}
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -41,7 +42,10 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         mkdir build
-        cd build && cmake .. && make
+        cd build
+        cmake ..
+        cp Makefile makefile
+        make
       
     - uses: actions/upload-artifact@v2
       with:
