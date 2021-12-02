@@ -29,13 +29,12 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        choco install git cmake
+        echo "CMAKE_GENERATOR=MinGW Makefiles"
 
     - name: "Linux: Install dependency libraries"
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends cmake
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -43,13 +42,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        ls
-        if ["$RUNNER_OS" == "Windows"]; then
-          cmake -G "MinGW Makefiles" ..
-        else
-          cmake .. 
-        fi
-        ls
+        cmake .. 
         make
       
     - uses: actions/upload-artifact@v2
