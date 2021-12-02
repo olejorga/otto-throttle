@@ -8,10 +8,6 @@ on:
   release:
     type: [created, edited]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: RelWithDebInfo
-
 jobs:
   build:
     strategy:
@@ -36,11 +32,11 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build
 
     - name: Build
       working-directory: ${{github.workspace}}
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build
 
     - name: Test
       working-directory: ${{github.workspace}}/build
