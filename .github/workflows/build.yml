@@ -47,6 +47,7 @@ jobs:
           cmake -G "MinGW Makefiles" -S .. -B .
         else
           cmake ..
+        fi
         ls
         make
       
