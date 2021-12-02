@@ -39,10 +39,11 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
+      shell: bash
       run: |
         mkdir build
         cd build
-        if ("$RUNNER_OS" == "Windows") then
+        if ["$RUNNER_OS" == "Windows"]; then
           cmake -G "MinGW Makefiles" -S .. -B .
         else
           cmake ..
