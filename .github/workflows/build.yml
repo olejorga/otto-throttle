@@ -44,7 +44,11 @@ jobs:
         mkdir build
         cd build
         ls
-        cmake ..
+        if ["$RUNNER_OS" == "Windows"]; then
+          cmake -G "Unix Makefiles" ..
+        else
+          cmake .. 
+        fi
         ls
         make
       
