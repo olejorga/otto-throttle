@@ -45,7 +45,7 @@ jobs:
         cd build
         ls
         if ["$RUNNER_OS" == "Windows"]; then
-          cmake -G "Unix Makefiles" ..
+          cmake -G "MinGW Makefiles" ..
         else
           cmake .. 
         fi
