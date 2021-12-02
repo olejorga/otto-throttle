@@ -41,7 +41,7 @@ FUNCTION(add_xplane_sdk_definitions library_name library_version)
     ELSEIF(UNIX)
         TARGET_COMPILE_DEFINITIONS(${library_name} PUBLIC -DAPL=0 -DIBM=0 -DLIN=1)
     ELSEIF(WIN32)
-        TARGET_COMPILE_OPTIONS(${library_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/MT$<$<CONFIG:Debug>:d>")
+        TARGET_COMPILE_OPTIONS(${library_name} PRIVATE "C:/MT$<$<CONFIG:Debug>:d>")
         TARGET_COMPILE_DEFINITIONS(${library_name} PUBLIC -DAPL=0 -DIBM=1 -DLIN=0)
     ENDIF()
 
