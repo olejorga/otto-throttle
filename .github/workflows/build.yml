@@ -29,7 +29,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        echo "CMAKE_GENERATOR=MinGW Makefiles"
+        echo "CMAKE_GENERATOR=MinGW Makefiles" >> $GITHUB_ENV
 
     - name: "Linux: Install dependency libraries"
       if: runner.os == 'Linux'
