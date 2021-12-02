@@ -2,11 +2,15 @@ name: Build
 
 on:
   push:
-    branches: [native]
+    branches: [ "*" ]
   pull_request:
-    branches: [native]
+    branches: [ "*" ]
   release:
     type: [created, edited]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   build:
@@ -22,28 +26,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        submodules: true
 
     - name: "Windows: Configure environment"
       if: runner.os == 'Windows'
       shell: bash
       run: |
+        # Select MinGW toolchain instead of the default MSVC.
         echo "CMAKE_GENERATOR=MinGW Makefiles" >> $GITHUB_ENV
 
-    - name: "Linux: Install dependency libraries"
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       working-directory: ${{github.workspace}}
-      shell: bash
-      run: |
-        mkdir build
-        cd build
-        cmake .. 
-        make
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_TYPE}}
       
     - uses: actions/upload-artifact@v2
       with:
