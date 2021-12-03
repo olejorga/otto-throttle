@@ -49,7 +49,7 @@ PLUGIN_API int XPluginStart(
 	g_menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
 
 	XPLMAppendMenuItem(g_menu_id, "Engage O/T", (void*)"engage", 1);
-	XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)1);
+	XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)"1");
 
 	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
 
@@ -85,13 +85,13 @@ void menu_handler(void* in_menu_ref, void* in_item_ref)
 	if (!strcmp((const char*)in_item_ref, "engage") && g_is_engaged == 0)
 	{
 		g_is_engaged = 1;
-		XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)2);
+		XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)"2");
 	}
 	
 	if (!strcmp((const char*)in_item_ref, "engage") && g_is_engaged == 1)
 	{
 		g_is_engaged = 0;
-		XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)1);
+		XPLMCheckMenuItemState(g_menu_id, 0, (XPLMMenuCheck*)"1");
 	}
 }
 
