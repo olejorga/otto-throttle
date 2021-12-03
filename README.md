@@ -18,7 +18,7 @@ Intended to be used in cruise with the FlyJSim 732 & 722.
 \*Not tested on these OSs.
 
 ## Installation
-Place the extracted "otto_throttle" folder inside your plugins folder:
+Place the extracted "Otto Throttle" folder inside your plugins folder:
 ```bash
 C:\<PATH TO XP>\X-Plane 11\Resources\plugins\Otto Throttle
 ```
