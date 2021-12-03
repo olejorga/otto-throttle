@@ -31,6 +31,7 @@ float g_last_speed = XPLMGetDataf(g_current_speed);
 
 
 void menu_handler(void*, void*);
+void inflate_otto(void);
 float adjust_thrust(float elapsed1, float elapsed2, int ctr, void* refcon);
 void increase_thrust(float factor);
 void decrease_thrust(float factor);
@@ -45,13 +46,7 @@ PLUGIN_API int XPluginStart(
 	strcpy(outSig, "olejorga");
 	strcpy(outDesc, "A sample plug-in that demonstrates and exercises the X-Plane menu API.");
 
-	g_menu_container_idx = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "Otto Throttle", 0, 0);
-	g_menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
-
-	XPLMAppendMenuItem(g_menu_id, "Engage", (void*)"engage", 1);
-	XPLMAppendMenuItem(g_menu_id, "Disengage", (void*)"disengage", 1);
-
-	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
+	inflate_otto();
 
 	return 1;
 }
@@ -85,11 +80,24 @@ void menu_handler(void* in_menu_ref, void* in_item_ref)
 	if (!strcmp((const char*)in_item_ref, "engage"))
 	{
 		g_is_engaged = 1;
+		XPLMSetMenuItemName(g_menu_id, 1, "Shit", 0);
 	} 
 	else if (!strcmp((const char*)in_item_ref, "disengage"))
 	{
 		g_is_engaged = 0;
 	}
+}
+
+
+void inflate_otto(void)
+{
+	g_menu_container_idx = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "Otto Throttle", 0, 0);
+	g_menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
+
+	XPLMAppendMenuItem(g_menu_id, "Engage", (void*)"engage", 1);
+	XPLMAppendMenuItem(g_menu_id, "Disengage", (void*)"disengage", 1);
+
+	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
 }
 
 
