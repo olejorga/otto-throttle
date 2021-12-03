@@ -28,7 +28,6 @@ jobs:
       if: runner.os == 'Windows'
       working-directory: ${{github.workspace}}
       run: |
-        choco install nmake
         mkdir build
         cd build
         cmake .. -G "NMake Makefiles"
