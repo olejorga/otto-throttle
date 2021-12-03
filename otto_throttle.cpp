@@ -52,26 +52,13 @@ PLUGIN_API int XPluginStart(
 }
 
 
-PLUGIN_API void	XPluginStop(void)
-{
-	XPLMDestroyMenu(g_menu_id);
-	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
-}
+PLUGIN_API void	XPluginStop(void) { }
 
 
-PLUGIN_API void XPluginDisable(void)
-{
-	XPLMDestroyMenu(g_menu_id);
-	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
-}
+PLUGIN_API void XPluginDisable(void) { }
 
 
-PLUGIN_API int XPluginEnable(void)
-{
-	inflate_otto();
-
-	return 1;
-}
+PLUGIN_API int XPluginEnable(void) { return 1; }
 
 
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void* inParam) { }
@@ -103,6 +90,13 @@ void inflate_otto(void)
 	XPLMAppendMenuItem(g_menu_id, "Engage O/T", (void*)"engage", 1);
 
 	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
+}
+
+
+void deflate_otto(void)
+{
+	XPLMDestroyMenu(g_menu_id);
+	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
 }
 
 
