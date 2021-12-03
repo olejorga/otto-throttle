@@ -1,4 +1,4 @@
-# Otto-throttle
+# Otto Throttle
 A basic auto-throttle for X-Plane 11, written with love in C++ <3
 
 Tired of manually adjusting your throttle in cruise, when all you want to do is make a cup of coffee? 
