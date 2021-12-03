@@ -79,12 +79,16 @@ void menu_handler(void* in_menu_ref, void* in_item_ref)
 {
 	if (!strcmp((const char*)in_item_ref, "engage"))
 	{
-		g_is_engaged = 1;
-		XPLMSetMenuItemName(g_menu_id, 1, "Shit", 0);
-	} 
-	else if (!strcmp((const char*)in_item_ref, "disengage"))
-	{
-		g_is_engaged = 0;
+		if (g_is_engaged == 0) 
+		{
+			g_is_engaged = 1;
+			XPLMSetMenuItemName(g_menu_id, 0, "Disengage", 0);
+		} 
+		else if (g_is_engaged == 1)
+		{
+			g_is_engaged = 0;
+			XPLMSetMenuItemName(g_menu_id, 0, "Engage", 0);
+		}
 	}
 }
 
@@ -95,7 +99,6 @@ void inflate_otto(void)
 	g_menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
 
 	XPLMAppendMenuItem(g_menu_id, "Engage", (void*)"engage", 1);
-	XPLMAppendMenuItem(g_menu_id, "Disengage", (void*)"disengage", 1);
 
 	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
 }
