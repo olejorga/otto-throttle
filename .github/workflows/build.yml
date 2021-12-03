@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [native]
   pull_request:
-    branches: [ "*" ]
+    branches: [native]
   release:
     type: [created, edited]
 
@@ -23,24 +23,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: "Windows: Configure environment"
-      if: runner.os == 'Windows'
-      shell: bash
+    - name: Build for linux or macos
+      if: runner.os != 'Windows'
+      working-directory: ${{github.workspace}}
       run: |
-        # Select MinGW toolchain instead of the default MSVC.
-        echo "CMAKE_GENERATOR=MinGW Makefiles" >> $GITHUB_ENV
-
-    - name: Configure CMake
-      working-directory: ${{github.workspace}}
-      run: cmake -B ${{github.workspace}}/build
-
-    - name: Build
-      working-directory: ${{github.workspace}}
-      run: cmake --build ${{github.workspace}}/build
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{env.BUILD_TYPE}}
+        mkdir build
+        cd build
+        cmake ..
+        make
       
     - uses: actions/upload-artifact@v2
       with:
