@@ -82,13 +82,13 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void* inPa
 
 void menu_handler(void* in_menu_ref, void* in_item_ref)
 {
-	if (!strcmp((const char*)in_item_ref, "engage") && g_is_engaged == 0)
+	if ((!strcmp((const char*)in_item_ref, "engage")) && (g_is_engaged == 0))
 	{
 		g_is_engaged = 1;
 		XPLMCheckMenuItem(g_menu_id, 0, (XPLMMenuCheck)2);
 	}
 	
-	if (!strcmp((const char*)in_item_ref, "engage") && g_is_engaged == 1)
+	if ((!strcmp((const char*)in_item_ref, "engage")) && (g_is_engaged == 1))
 	{
 		g_is_engaged = 0;
 		XPLMCheckMenuItem(g_menu_id, 0, (XPLMMenuCheck)1);
