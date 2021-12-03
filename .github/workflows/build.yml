@@ -23,6 +23,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Build for windows
+      if: runner.os == 'Windows'
+      working-directory: ${{github.workspace}}
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        nmake
+
     - name: Build for linux or macos
       if: runner.os != 'Windows'
       working-directory: ${{github.workspace}}
