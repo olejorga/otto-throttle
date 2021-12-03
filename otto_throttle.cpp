@@ -7,6 +7,7 @@
 #include "XPLMProcessing.h"
 #include "XPLMUtilities.h"
 
+
 #if IBM
 	#include <windows.h>
 #endif
@@ -15,10 +16,11 @@
 	#error This is made to be compiled against the XPLM300 SDK
 #endif
 
-int g_is_engaged = 0;
-int g_menu_container_idx; // The index of our menu item in the Plugins menu
 
-XPLMMenuID g_menu_id; // The menu container we'll append all our menu items to
+int g_is_engaged = 0;
+int g_menu_container_idx;
+
+XPLMMenuID g_menu_id;
 
 XPLMDataRef g_current_speed = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed"); // FLOAT
 XPLMDataRef g_target_speed = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"); // FLOAT
@@ -27,10 +29,12 @@ XPLMDataRef g_sim_rate = XPLMFindDataRef("sim/time/sim_speed"); // INT
 
 float g_last_speed = XPLMGetDataf(g_current_speed);
 
+
 void menu_handler(void*, void*);
 float adjust_thrust(float elapsed1, float elapsed2, int ctr, void* refcon);
 void increase_thrust(float factor);
 void decrease_thrust(float factor);
+
 
 PLUGIN_API int XPluginStart(
 	char* outName,
@@ -44,51 +48,52 @@ PLUGIN_API int XPluginStart(
 	g_menu_container_idx = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "Otto Throttle", 0, 0);
 	g_menu_id = XPLMCreateMenu("Sample Menu", XPLMFindPluginsMenu(), g_menu_container_idx, menu_handler, NULL);
 
-	XPLMAppendMenuItem(g_menu_id, "Engage", (void*)"engage", 1);
-	XPLMAppendMenuItem(g_menu_id, "Disengage", (void*)"disengage", 1);
-	// XPLMAppendMenuItemWithCommand(g_menu_id, "Toggle Flight Configuration (Command-Based)", XPLMFindCommand("sim/operation/toggle_flight_config"));
-
-	// Changed your mind? You can destroy the submenu you created with XPLMDestroyMenu(),
-	// then remove the "Sample Menu" item from the "Plugins" menu with XPLMRemoveMenuItem().
-	// XPLMDestroyMenu(g_menu_id);
-	// XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
+	XPLMAppendMenuItem(g_menu_id, "Engage O/T", (void*)"switch", 1);
 
 	XPLMRegisterFlightLoopCallback(adjust_thrust, 1, NULL);
 
 	return 1;
 }
 
+
 PLUGIN_API void	XPluginStop(void)
 {
-	// Since we created this menu, we'll be good citizens and clean it up as well
 	XPLMDestroyMenu(g_menu_id);
-	// If we were able to add a command to the aircraft menu, it will be automatically removed for us when we're unloaded
+	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
 }
+
 
 PLUGIN_API void XPluginDisable(void)
 {
-	// XPLMDestroyMenu(g_menu_id);
+	XPLMDestroyMenu(g_menu_id);
+	XPLMRemoveMenuItem(XPLMFindPluginsMenu(), g_menu_container_idx);
 }
+
 
 PLUGIN_API int XPluginEnable(void)
 {
 	return 1;
 }
 
+
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void* inParam) { }
+
 
 void menu_handler(void* in_menu_ref, void* in_item_ref)
 {
-	if (!strcmp((const char*)in_item_ref, "engage"))
+	if (!strcmp((const char*)in_item_ref, "switch") && g_is_engaged == 0)
 	{
 		g_is_engaged = 1;
+		XPLMSetMenuItemName(g_menu_id, 0, "Disengage O/T", 0);
 	}
-
-	if (!strcmp((const char*)in_item_ref, "disengage"))
+	
+	if (!strcmp((const char*)in_item_ref, "switch") && g_is_engaged == 1)
 	{
 		g_is_engaged = 0;
+		XPLMSetMenuItemName(g_menu_id, 0, "Engage O/T", 0);
 	}
 }
+
 
 float adjust_thrust(float elapsed1, float elapsed2, int ctr, void* refcon)
 {
@@ -126,6 +131,7 @@ float adjust_thrust(float elapsed1, float elapsed2, int ctr, void* refcon)
 	return -1;
 }
 
+
 void increase_thrust(float factor)
 {
 	float throttle_setting = XPLMGetDataf(g_throttle_setting);
@@ -139,6 +145,7 @@ void increase_thrust(float factor)
 	}
 }
 
+
 void decrease_thrust(float factor)
 {
 	float throttle_setting = XPLMGetDataf(g_throttle_setting);
@@ -151,4 +158,3 @@ void decrease_thrust(float factor)
 		XPLMSetDataf(g_throttle_setting, (throttle_setting - factor));
 	}
 }
-// Test
