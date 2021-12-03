@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        #  - ubuntu-latest
+          - ubuntu-latest
           - windows-latest
-        #  - macos-latest
+          - macos-latest
 
     runs-on: ${{matrix.os}}
 
@@ -43,7 +43,22 @@ jobs:
         make
       
     - uses: actions/upload-artifact@v2
+      if: runner.os == 'Windows'
       with:
-        name: binaries
+        name: win
+        path: ${{github.workspace}}/build/*.xpl
+        if-no-files-found: error
+
+    - uses: actions/upload-artifact@v2
+      if: runner.os == 'Linux'
+      with:
+        name: lin
+        path: ${{github.workspace}}/build/*.xpl
+        if-no-files-found: error
+
+    - uses: actions/upload-artifact@v2
+      if: runner.os == 'macOS'
+      with:
+        name: mac
         path: ${{github.workspace}}/build/*.xpl
         if-no-files-found: error
