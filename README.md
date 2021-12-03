@@ -15,7 +15,7 @@ Intended to be used in cruise with the FlyJSim 732 & 722.
 - X-Plane 11.xx > 11.50
 - Compiled for Windows, Linux* and macOS*
 
-\*Not tested on these OSs.
+**Not tested on these OSs.*
 
 ## Installation
 Place the extracted "Otto Throttle" folder inside your plugins folder:
@@ -29,3 +29,5 @@ Can be toggled on or off via the plugins menu:
 Plugins > Otto Throttle > Engage O/T
 Plugins > Otto Throttle > Disengage O/T
 ```
+
+**Also available as a FlyWithLua plugin, see v1.1 and below.*
