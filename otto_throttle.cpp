@@ -23,7 +23,7 @@ int g_menu_container_idx;
 XPLMMenuID g_menu_id;
 
 XPLMDataRef g_current_speed = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed"); // FLOAT
-XPLMDataRef g_target_speed = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts_mach"); // FLOAT
+XPLMDataRef g_target_speed = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts"); // FLOAT
 XPLMDataRef g_throttle_setting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all"); // FLOAT
 XPLMDataRef g_sim_rate = XPLMFindDataRef("sim/time/sim_speed"); // INT
 
