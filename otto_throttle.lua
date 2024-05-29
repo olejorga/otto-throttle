@@ -14,7 +14,7 @@ add_macro("Engage O/T", "otto_throttle_on = true", "otto_throttle_on = false")
 -- Get the aircraft's current speed, target speed & the current sim rate
 -- And create a writable var for the throttle setting
 dataref("speed", "sim/flightmodel/position/indicated_airspeed", "readonly")
-dataref("target_speed", "sim/cockpit2/autopilot/airspeed_dial_kts_mach", "readonly")
+dataref("target_speed", "sim/cockpit2/autopilot/airspeed_dial_kts", "readonly")
 dataref("throttle_setting", "sim/cockpit2/engine/actuators/throttle_ratio_all", "writable")
 dataref("sim_rate", "sim/time/sim_speed", "readonly")
 
