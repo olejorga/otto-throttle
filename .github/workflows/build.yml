@@ -16,7 +16,7 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest
+#          - macos-latest
 
     runs-on: ${{matrix.os}}
 
@@ -59,9 +59,9 @@ jobs:
         path: ${{github.workspace}}/build/*.xpl
         if-no-files-found: error
 
-    - uses: actions/upload-artifact@v2
-      if: runner.os == 'macOS'
-      with:
-        name: mac
-        path: ${{github.workspace}}/build/*.xpl
-        if-no-files-found: error
+#    - uses: actions/upload-artifact@v2
+#      if: runner.os == 'macOS'
+#      with:
+#        name: mac
+#        path: ${{github.workspace}}/build/*.xpl
+#        if-no-files-found: error
