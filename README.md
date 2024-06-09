@@ -13,8 +13,8 @@ Intended to be used in cruise with the FlyJSim 732 & 722, but it should be useab
 
 ## Requirements
 - X-Plane 11.xx or X-Plane 12.xx
-- Compiled for Windows, Linux* and macOS*
-  - Also available as FlyWithLua script
+- Compiled for Windows and Linux* (x86)
+  - Also available as FlyWithLua script for ARM and macOS users
 
 **Not tested on these OSs.*
 
