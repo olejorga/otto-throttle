@@ -1,0 +1,23 @@
+[package]
+name = "simconnect"
+license = "MIT"
+description = "Rust bindings for SimConnect"
+version = "0.3.2"
+authors = ["Connor T"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[example]]
+name = "aircraft_updates_on_change"
+path = "examples/aircraft_updates_on_change/main.rs"
+
+[[example]]
+name = "otto_throttle"
+path = "examples/otto_throttle/main.rs"
+
+[[example]]
+name = "aircraft_inputs"
+path = "examples/aircraft_inputs/main.rs"
+
+[build-dependencies]
+bindgen = "0.69.4"
