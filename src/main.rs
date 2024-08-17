@@ -2,34 +2,7 @@ use simconnect::{
     SimConnect_AddToDataDefinition, SimConnect_GetNextDispatch, SimConnect_MapClientEventToSimEvent, SimConnect_Open, SimConnect_RequestDataOnSimObject, SimConnect_TransmitClientEvent, DWORD, HANDLE, SIMCONNECT_DATATYPE_SIMCONNECT_DATATYPE_FLOAT64, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_PERIOD_SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_RECV, SIMCONNECT_RECV_ID, SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA, SIMCONNECT_RECV_SIMOBJECT_DATA
 };
 
-use std::{ffi::CString, mem::transmute_copy, ptr, thread, time::Duration};
-
-pub struct PID {
-    kp: f64,
-    ki: f64,
-    kd: f64,
-    integral: f64,
-    prev_error: f64,
-}
-
-impl PID {
-    pub fn new(kp: f64, ki: f64, kd: f64) -> Self {
-        PID {
-            kp,
-            ki,
-            kd,
-            integral: 0.0,
-            prev_error: 0.0,
-        }
-    }
-
-    pub fn calculate(&mut self, error: f64, dt: f64) -> f64 {
-        self.integral += error * dt;
-        let derivative = (error - self.prev_error) / dt;
-        self.prev_error = error;
-        self.kp * error + self.ki * self.integral + self.kd * derivative
-    }
-}
+use std::{ffi::CString, io, mem::transmute_copy, ptr, thread, time::Duration};
 
 struct Event {
     id: u32,
@@ -62,7 +35,6 @@ const VARIABLES: [Variable; 2] = [
 
 fn main() {
     let mut client: HANDLE = ptr::null_mut();
-    let mut pid: PID = PID::new(0.001, 0.000001, 0.001);
 
     let name: CString = CString::new("DEMO").unwrap();
 
@@ -130,6 +102,15 @@ fn main() {
         }
     }
 
+    let mut input = String::new();
+
+    println!("Enter target speed (IAS kt):");
+    io::stdin().read_line(&mut input).unwrap();
+
+    let target: f64 = input.trim().parse().unwrap();
+
+    let mut last_speed: f64 = 0.0;
+
     loop {
         let mut buffer: *mut SIMCONNECT_RECV = ptr::null_mut();
         let mut buffer_size: DWORD = 32;
@@ -146,14 +127,28 @@ fn main() {
                         transmute_copy(&(buffer as *const SIMCONNECT_RECV_SIMOBJECT_DATA));
                     let values_ptr = std::ptr::addr_of!(data.dwData) as *const Values;
                     let values = std::ptr::read_unaligned(values_ptr);
+                    let error: f64 = (values.speed - target).abs();
+                    let mut adjustment: f64 = 0.0;
 
-                    // println!("{:?}", values);
+                    if (values.speed < target) && (values.speed < last_speed) {
+                        if error < 5.0 {
+                            adjustment = 0.0001;
+                        } else {
+                            adjustment = 0.001;
+                        }
+                    }
 
-                    let error = 250.0 - values.speed;
-                    let adjustment = pid.calculate(error, 0.016);
-                    let throttle = (values.throttle + adjustment).clamp(0.0, 1.0);
+                    if (values.speed > target) && (values.speed > last_speed) {
+                        if error < 5.0 {
+                            adjustment = 0.0001;
+                        } else {
+                            adjustment = 0.001;
+                        }
+                    }
 
-                    // println!("{:?}", throttle);
+                    last_speed = values.speed;
+
+                    let throttle =(values.throttle + adjustment).clamp(0.0, 1.0);
 
                     if SimConnect_TransmitClientEvent(
                         client,
