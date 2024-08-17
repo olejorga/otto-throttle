@@ -1,35 +1,31 @@
--------------------
--- OTTO THROTTLE --
--------------------
---- by olejorga ---
--------------------
-------- 1.1 -------
--------------------
-
+--------------------------------------------------------------------------------
+-- OTTO THROTTLE (VERSION 1.1.0) FOR X-PLANE -----------------------------------
+--------------------------------------------------------------------------------
+-- WRITTEN BY @olejorga AND @NNowakowski ---------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 -- Create a toggle button in the FlyWithLua macro context menu
 add_macro("Engage O/T", "otto_throttle_on = true", "otto_throttle_on = false")
 
-
--- Get the aircraft's current speed, target speed & the current sim rate
--- And create a writable var for the throttle setting
+-- Get the aircraft's current speed, target speed & the current sim rate and 
+-- create a writable var for the throttle setting.
 dataref("speed", "sim/flightmodel/position/indicated_airspeed", "readonly")
 dataref("target_speed", "sim/cockpit2/autopilot/airspeed_dial_kts", "readonly")
 dataref("throttle_setting", "sim/cockpit2/engine/actuators/throttle_ratio_all", "writable")
 dataref("sim_rate", "sim/time/sim_speed", "readonly")
 
-
 -- Save the current speed as the last speed recorded
 local last_speed = speed
 
-
 function adjust_thrust()
-  -- Adjusts the throttle setting either up or down, 
-  -- based on the current speed & the target speed.
+  -- Adjusts the throttle setting either up or down, based on the current speed 
+  -- & the target speed.
 
   function increase_thrust(factor)
-    -- Increases the throttle setting by
-    -- a factor of x on every call
+    -- Increases the throttle setting by a factor of x on every call
 
     -- Makes sure throttle is not set above the highest setting
     if (throttle_setting + factor) == 1 then
@@ -40,8 +36,7 @@ function adjust_thrust()
   end
 
   function decrease_thrust(factor)
-    -- Decreases the throttle setting by
-    -- a factor of x on every call
+    -- Decreases the throttle setting by a factor of x on every call
 
     -- Makes sure throttle is not set below the lowest setting
     if (throttle_setting - factor) == 1 then
@@ -80,7 +75,6 @@ function adjust_thrust()
     last_speed = speed
   end
 end
-
 
 -- Adjust throttles x (current FPS) times per sec
 do_every_frame("adjust_thrust()")

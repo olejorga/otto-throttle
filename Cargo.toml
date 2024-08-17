@@ -1,0 +1,7 @@
+[package]
+name = "otto-throttle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+simconnect = { git = "https://github.com/olejorga/simconnect", branch = "main" }
