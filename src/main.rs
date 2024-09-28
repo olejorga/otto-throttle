@@ -1,5 +1,10 @@
 use simconnect::{
-    SimConnect_AddToDataDefinition, SimConnect_GetNextDispatch, SimConnect_MapClientEventToSimEvent, SimConnect_Open, SimConnect_RequestDataOnSimObject, SimConnect_TransmitClientEvent, DWORD, HANDLE, SIMCONNECT_DATATYPE_SIMCONNECT_DATATYPE_FLOAT64, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_PERIOD_SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_RECV, SIMCONNECT_RECV_ID, SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA, SIMCONNECT_RECV_SIMOBJECT_DATA
+    SimConnect_AddToDataDefinition, SimConnect_GetNextDispatch,
+    SimConnect_MapClientEventToSimEvent, SimConnect_Open, SimConnect_RequestDataOnSimObject,
+    SimConnect_TransmitClientEvent, DWORD, HANDLE, SIMCONNECT_DATATYPE_SIMCONNECT_DATATYPE_FLOAT64,
+    SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY, SIMCONNECT_GROUP_PRIORITY_HIGHEST,
+    SIMCONNECT_PERIOD_SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_RECV, SIMCONNECT_RECV_ID,
+    SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA, SIMCONNECT_RECV_SIMOBJECT_DATA,
 };
 
 use std::{ffi::CString, io, mem::transmute_copy, ptr, thread, time::Duration};
@@ -20,7 +25,10 @@ struct Values {
     speed: f64,
 }
 
-const THROTTLE_EVENT: Event = Event { id: 0, name: "THROTTLE_SET" };
+const THROTTLE_EVENT: Event = Event {
+    id: 0,
+    name: "THROTTLE_SET",
+};
 
 const VARIABLES: [Variable; 2] = [
     Variable {
@@ -92,12 +100,7 @@ fn main() {
     unsafe {
         let name: CString = CString::new(THROTTLE_EVENT.name).unwrap();
 
-        if SimConnect_MapClientEventToSimEvent(
-            client,
-            THROTTLE_EVENT.id,
-            name.as_ptr()
-        ) != 0
-        {
+        if SimConnect_MapClientEventToSimEvent(client, THROTTLE_EVENT.id, name.as_ptr()) != 0 {
             panic!("FAILED TO MAP CLIENT EVENT TO SIM EVENT");
         }
     }
@@ -140,15 +143,15 @@ fn main() {
 
                     if (values.speed > target) && (values.speed > last_speed) {
                         if error < 5.0 {
-                            adjustment = 0.0001;
+                            adjustment = -0.0001;
                         } else {
-                            adjustment = 0.001;
+                            adjustment = -0.001;
                         }
                     }
 
                     last_speed = values.speed;
 
-                    let throttle =(values.throttle + adjustment).clamp(0.0, 1.0);
+                    let throttle = (values.throttle + adjustment).clamp(0.0, 1.0);
 
                     if SimConnect_TransmitClientEvent(
                         client,
@@ -156,7 +159,7 @@ fn main() {
                         THROTTLE_EVENT.id,
                         (16383.0 * throttle).round() as DWORD,
                         SIMCONNECT_GROUP_PRIORITY_HIGHEST,
-                        SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY
+                        SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY,
                     ) != 0
                     {
                         panic!("FAILED TO TRANSMIT CLIENT EVENT");
