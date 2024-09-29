@@ -1,22 +1,20 @@
 use std::collections::VecDeque;
 
-pub type Measurement = egui::plot::PlotPoint;
-
 #[derive(Debug)]
-pub struct MeasurementWindow {
-    pub values: VecDeque<Measurement>,
+pub struct Measurement {
+    pub values: VecDeque<egui::plot::PlotPoint>,
     pub look_behind: usize,
 }
 
-impl MeasurementWindow {
-    pub fn new_with_look_behind(look_behind: usize) -> Self {
+impl Measurement {
+    pub fn new(look_behind: usize) -> Self {
         Self {
             values: VecDeque::new(),
             look_behind,
         }
     }
 
-    pub fn add(&mut self, measurement: Measurement) {
+    pub fn add(&mut self, measurement: egui::plot::PlotPoint) {
         if let Some(last) = self.values.back() {
             if measurement.x < last.x {
                 self.values.clear()

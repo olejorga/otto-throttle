@@ -1,38 +1,44 @@
 use std::{
+    ffi::CString,
+    mem::transmute_copy,
+    ptr,
     sync::{Arc, Mutex},
     thread,
+    time::Duration,
 };
 
-use measurement::{Measurement, MeasurementWindow};
+use pid::PID;
+use simconnect::{
+    SimConnect_AddToDataDefinition, SimConnect_GetNextDispatch,
+    SimConnect_MapClientEventToSimEvent, SimConnect_Open, SimConnect_RequestDataOnSimObject,
+    SimConnect_TransmitClientEvent, DWORD, HANDLE, SIMCONNECT_DATATYPE_SIMCONNECT_DATATYPE_FLOAT64,
+    SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY, SIMCONNECT_GROUP_PRIORITY_HIGHEST,
+    SIMCONNECT_PERIOD_SIMCONNECT_PERIOD_SIM_FRAME, SIMCONNECT_RECV, SIMCONNECT_RECV_ID,
+    SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA, SIMCONNECT_RECV_SIMOBJECT_DATA,
+};
+
+use measurement::Measurement;
 
 mod measurement;
+mod pid;
 
-pub struct MonitorApp {
+pub struct App {
     include_y: Vec<f64>,
-    measurements: Arc<Mutex<MeasurementWindow>>,
+    measurements: Arc<Mutex<Measurement>>,
+    pid: Arc<Mutex<PID>>,
 }
 
-impl MonitorApp {
-    fn new(look_behind: usize) -> Self {
+impl App {
+    fn new(look_behind: usize, include_y: Vec<f64>) -> Self {
         Self {
-            measurements: Arc::new(Mutex::new(MeasurementWindow::new_with_look_behind(
-                look_behind,
-            ))),
-            include_y: Vec::new(),
+            include_y,
+            measurements: Arc::new(Mutex::new(Measurement::new(look_behind))),
+            pid: Arc::new(Mutex::new(PID::new(0.0003, 0.0, 0.0005, 250.0))),
         }
     }
 }
 
-impl eframe::App for MonitorApp {
-    // /// Called by the frame work to save state before shutdown.
-    // /// Note that you must enable the `persistence` feature for this to work.
-    // #[cfg(feature = "persistence")]
-    // fn save(&mut self, storage: &mut dyn eframe::Storage) {
-    //     eframe::set_value(storage, eframe::APP_KEY, self);
-    // }
-
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let mut plot = egui::plot::Plot::new("measurements");
@@ -48,22 +54,187 @@ impl eframe::App for MonitorApp {
             });
         });
 
+        egui::SidePanel::new(egui::panel::Side::Left, "left").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("P: ");
+                ui.add(egui::DragValue::new(&mut self.pid.lock().unwrap().kp).fixed_decimals(4));
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("I: ");
+                ui.add(egui::DragValue::new(&mut self.pid.lock().unwrap().ki).fixed_decimals(4));
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("D: ");
+                ui.add(egui::DragValue::new(&mut self.pid.lock().unwrap().kd).fixed_decimals(4));
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("TGT: ");
+                ui.add(egui::DragValue::new(&mut self.pid.lock().unwrap().target));
+            });
+        });
+
         ctx.request_repaint();
     }
 }
 
+struct Event {
+    id: u32,
+    name: &'static str,
+}
+
+struct Variable {
+    name: &'static str,
+    unit: &'static str,
+}
+
+#[derive(Debug)]
+struct Values {
+    throttle: f64,
+    speed: f64,
+}
+
+const THROTTLE_EVENT: Event = Event {
+    id: 0,
+    name: "THROTTLE_SET",
+};
+
+const VARIABLES: [Variable; 2] = [
+    Variable {
+        name: "GENERAL ENG THROTTLE LEVER POSITION:1",
+        unit: "Percent over 100",
+    },
+    Variable {
+        name: "AIRSPEED INDICATED",
+        unit: "Knots",
+    },
+];
+
 fn main() {
-    let mut app = MonitorApp::new(1000);
-
-    app.include_y = vec![];
-
-    let native_options = eframe::NativeOptions::default();
-
-    let monitor_ref = app.measurements.clone();
+    let app = App::new(1000, vec![200.0, 220.0, 240.0, 250.0, 260.0, 280.0, 300.0]);
+    let measurements = app.measurements.clone();
+    let pid = app.pid.clone();
+    let dt = 0.016;
 
     thread::spawn(move || {
-        monitor_ref.lock().unwrap().add(Measurement::new(0, 0));
+        let mut client: HANDLE = ptr::null_mut();
+
+        let name: CString = CString::new("DEMO").unwrap();
+
+        unsafe {
+            if SimConnect_Open(
+                &mut client,
+                name.as_ptr(),
+                ptr::null_mut(),
+                0,
+                ptr::null_mut(),
+                0,
+            ) != 0
+            {
+                panic!("FAILED TO OPEN");
+            }
+        }
+
+        for (index, variable) in VARIABLES.iter().enumerate() {
+            let name: CString = CString::new(variable.name).unwrap();
+            let unit: CString = CString::new(variable.unit).unwrap();
+
+            unsafe {
+                if SimConnect_AddToDataDefinition(
+                    client,
+                    0,
+                    name.as_ptr(),
+                    unit.as_ptr(),
+                    SIMCONNECT_DATATYPE_SIMCONNECT_DATATYPE_FLOAT64,
+                    0.0,
+                    index as u32,
+                ) != 0
+                {
+                    panic!("FAILED TO ADD DATA DEFINITION");
+                }
+            }
+        }
+
+        unsafe {
+            if SimConnect_RequestDataOnSimObject(
+                client,
+                0,
+                0,
+                0,
+                SIMCONNECT_PERIOD_SIMCONNECT_PERIOD_SIM_FRAME,
+                0,
+                0,
+                0,
+                0,
+            ) != 0
+            {
+                panic!("FAILED TO REQUEST DATA ON SIM OBJECT");
+            }
+        }
+
+        unsafe {
+            let name: CString = CString::new(THROTTLE_EVENT.name).unwrap();
+
+            if SimConnect_MapClientEventToSimEvent(client, THROTTLE_EVENT.id, name.as_ptr()) != 0 {
+                panic!("FAILED TO MAP CLIENT EVENT TO SIM EVENT");
+            }
+        }
+
+        let mut x = 0.0;
+
+        loop {
+            let mut buffer: *mut SIMCONNECT_RECV = ptr::null_mut();
+            let mut buffer_size: DWORD = 32;
+            let buffer_size_ptr: *mut DWORD = &mut buffer_size;
+
+            unsafe {
+                if SimConnect_GetNextDispatch(client, &mut buffer, buffer_size_ptr) != 0 {
+                    continue;
+                }
+
+                match (*buffer).dwID as SIMCONNECT_RECV_ID {
+                    SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA => {
+                        let data: &SIMCONNECT_RECV_SIMOBJECT_DATA =
+                            transmute_copy(&(buffer as *const SIMCONNECT_RECV_SIMOBJECT_DATA));
+
+                        let values_ptr = std::ptr::addr_of!(data.dwData) as *const Values;
+                        let values = std::ptr::read_unaligned(values_ptr);
+
+                        measurements
+                            .lock()
+                            .unwrap()
+                            .add(egui::plot::PlotPoint::new(x, values.speed));
+
+                        let adjustment = pid.lock().unwrap().update(values.speed, dt);
+                        let throttle = (values.throttle + adjustment).clamp(0.0, 1.0);
+
+                        if SimConnect_TransmitClientEvent(
+                            client,
+                            0,
+                            THROTTLE_EVENT.id,
+                            (16383.0 * throttle).round() as DWORD,
+                            SIMCONNECT_GROUP_PRIORITY_HIGHEST,
+                            SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY,
+                        ) != 0
+                        {
+                            panic!("FAILED TO TRANSMIT CLIENT EVENT");
+                        }
+
+                        x += dt;
+                    }
+                    _ => continue,
+                }
+
+                thread::sleep(Duration::from_secs_f64(dt));
+            }
+        }
     });
 
-    eframe::run_native("Monitor app", native_options, Box::new(|_| Box::new(app)));
+    eframe::run_native(
+        "Monitor app",
+        eframe::NativeOptions::default(),
+        Box::new(|_| Box::new(app)),
+    );
 }
