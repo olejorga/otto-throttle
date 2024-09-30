@@ -1,3 +1,5 @@
+use std::{ffi::CString, io, mem::transmute_copy, ptr, thread, time::Duration};
+
 use simconnect::{
     SimConnect_AddToDataDefinition, SimConnect_GetNextDispatch,
     SimConnect_MapClientEventToSimEvent, SimConnect_Open, SimConnect_RequestDataOnSimObject,
@@ -7,7 +9,9 @@ use simconnect::{
     SIMCONNECT_RECV_ID_SIMCONNECT_RECV_ID_SIMOBJECT_DATA, SIMCONNECT_RECV_SIMOBJECT_DATA,
 };
 
-use std::{ffi::CString, io, mem::transmute_copy, ptr, thread, time::Duration};
+use pid::PID;
+
+mod pid;
 
 struct Event {
     id: u32,
@@ -21,9 +25,14 @@ struct Variable {
 
 #[derive(Debug)]
 struct Values {
-    throttle: f64,
-    speed: f64,
+    current_throttle: f64,
+    current_speed: f64,
 }
+
+const P: f64 = 0.0003;
+const I: f64 = 0.0;
+const D: f64 = 0.0005;
+const STEP_TIME: f64 = 0.016;
 
 const THROTTLE_EVENT: Event = Event {
     id: 0,
@@ -43,7 +52,6 @@ const VARIABLES: [Variable; 2] = [
 
 fn main() {
     let mut client: HANDLE = ptr::null_mut();
-
     let name: CString = CString::new("DEMO").unwrap();
 
     unsafe {
@@ -107,12 +115,11 @@ fn main() {
 
     let mut input = String::new();
 
-    println!("Enter target speed (IAS kt):");
+    println!("Enter target speed (kn):");
     io::stdin().read_line(&mut input).unwrap();
 
-    let target: f64 = input.trim().parse().unwrap();
-
-    let mut last_speed: f64 = 0.0;
+    let target_speed: f64 = input.trim().parse().unwrap();
+    let mut pid = PID::new(P, I, D, STEP_TIME, target_speed);
 
     loop {
         let mut buffer: *mut SIMCONNECT_RECV = ptr::null_mut();
@@ -130,34 +137,13 @@ fn main() {
                         transmute_copy(&(buffer as *const SIMCONNECT_RECV_SIMOBJECT_DATA));
                     let values_ptr = std::ptr::addr_of!(data.dwData) as *const Values;
                     let values = std::ptr::read_unaligned(values_ptr);
-                    let error: f64 = (values.speed - target).abs();
-                    let mut adjustment: f64 = 0.0;
-
-                    if (values.speed < target) && (values.speed < last_speed) {
-                        if error < 5.0 {
-                            adjustment = 0.0001;
-                        } else {
-                            adjustment = 0.001;
-                        }
-                    }
-
-                    if (values.speed > target) && (values.speed > last_speed) {
-                        if error < 5.0 {
-                            adjustment = -0.0001;
-                        } else {
-                            adjustment = -0.001;
-                        }
-                    }
-
-                    last_speed = values.speed;
-
-                    let throttle = (values.throttle + adjustment).clamp(0.0, 1.0);
+                    let new_throttle = pid.update(values.current_speed, values.current_throttle);
 
                     if SimConnect_TransmitClientEvent(
                         client,
                         0,
                         THROTTLE_EVENT.id,
-                        (16383.0 * throttle).round() as DWORD,
+                        (16383.0 * new_throttle).round() as DWORD,
                         SIMCONNECT_GROUP_PRIORITY_HIGHEST,
                         SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY,
                     ) != 0
@@ -168,7 +154,7 @@ fn main() {
                 _ => continue,
             }
 
-            thread::sleep(Duration::from_millis(16));
+            thread::sleep(Duration::from_secs(STEP_TIME as u64));
         }
     }
 }
