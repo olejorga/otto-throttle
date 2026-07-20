@@ -77,7 +77,7 @@ endif
 
 ifeq ($(OS),win)
     CXXFLAGS += -DIBM
-    LDFLAGS  += -shared -static-libgcc -static-libstdc++
+    LDFLAGS  += -shared -static
     LIBS     += -L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64
 endif
 
