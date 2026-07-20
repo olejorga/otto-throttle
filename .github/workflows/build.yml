@@ -1,0 +1,25 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            make TARGET=linux
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            make TARGET=windows
+          else
+            make TARGET=mac
+          fi

@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "compilerPath": "/usr/bin/g++",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++20",
+            "includePath": [
+                "${workspaceFolder}/SDK/CHeaders/XPLM",
+                "${workspaceFolder}/SDK/CHeaders/Wrappers",
+                "${workspaceFolder}/src"
+            ],
+            "defines": [
+                "LIN"
+            ]
+        }
+    ],
+    "version": 4
+}
