@@ -30,3 +30,36 @@ jobs:
         with:
           name: ${{ matrix.target }}
           path: build/${{ matrix.target }}/*.xpl
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux
+        uses: actions/download-artifact@v7
+        with:
+          name: lin
+          path: package/64
+
+      - name: Download Windows
+        uses: actions/download-artifact@v7
+        with:
+          name: win
+          path: package/64
+
+      - name: Download Mac
+        uses: actions/download-artifact@v7
+        with:
+          name: mac
+          path: package/64
+
+      - name: Create zip
+        run: |
+          zip -r MyPlugin.zip package
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: MyPlugin
+          path: MyPlugin.zip
