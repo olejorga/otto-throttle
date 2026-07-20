@@ -28,7 +28,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.target }}
+          name: ${{ matrix.target }}-xpl
           path: build/${{ matrix.target }}/*.xpl
 
   package:
@@ -39,19 +39,19 @@ jobs:
       - name: Download Linux
         uses: actions/download-artifact@v7
         with:
-          name: lin
+          name: lin-xpl
           path: OttoThrottle/64
 
       - name: Download Windows
         uses: actions/download-artifact@v7
         with:
-          name: win
+          name: win-xpl
           path: OttoThrottle/64
 
       - name: Download Mac
         uses: actions/download-artifact@v7
         with:
-          name: mac
+          name: mac-xpl
           path: OttoThrottle/64
 
       - name: Create zip
