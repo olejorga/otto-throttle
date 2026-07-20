@@ -17,9 +17,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            make TARGET=lin
+            make OS=lin
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            make TARGET=win
+            make OS=win
           else
-            make TARGET=mac
+            make OS=mac
           fi
