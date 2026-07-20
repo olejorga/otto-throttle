@@ -1,31 +1,81 @@
-PLUGIN := OttoThrottle
+# PLUGIN := OttoThrottle
 
-SDK := SDK
+# SDK := SDK
 
-CXX := g++
+# CXX := g++
 
-SRC := $(wildcard src/*.cpp)
-OBJ := $(patsubst src/%.cpp,build/%.o,$(SRC))
+# OS ?= lin
+
+# BUILD := build/$(OS)
+
+# SRC := $(wildcard src/*.cpp)
+# OBJ := $(patsubst src/%.cpp,$(OS)/%.o,$(SRC))
+
+# ifeq ($(OS),lin)
+#     CXX = g++
+#     DEFINES = -DLIN
+#     OUTPUT = build/lin/lin.xpl
+# endif
+
+# ifeq ($(OS),win)
+#     CXX = x86_64-w64-mingw32-g++
+#     DEFINES = -DIBM
+#     OUTPUT = build/win/win.xpl
+# endif
+
+# ifeq ($(OS),mac)
+#     CXX = clang++
+#     DEFINES = -DAPL
+#     OUTPUT = build/mac/mac.xpl
+# endif
+
+# CXXFLAGS := \
+#     -std=c++20 \
+#     -Wall \
+#     -Wextra \
+#     -O2 \
+#     -fPIC \
+#     -I$(SDK)/CHeaders/XPLM \
+#     -I$(SDK)/CHeaders/Wrappers
+
+# CXXFLAGS += -DLIN
+
+# LDFLAGS := \
+#     -shared
+
+# TARGET := build/$(OS)/lin.xpl
+
+# all: $(TARGET)
+
+# build/$(OS):
+# 	mkdir -p build/$(OS)
+
+# build/$(OS)/%.o: src/%.cpp | build/$(OS)
+# 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# $(TARGET): $(OBJ)
+# 	$(CXX) $(OBJ) $(LDFLAGS) -o $@
+
+# clean:
+# 	rm -rf build/$(OS)
+
+# # install: $(TARGET)
+# # 	mkdir -p "$(HOME)/X-Plane 12/Resources/plugins/$(PLUGIN)/64"
+# # 	cp $(TARGET) \
+# # 	   "$(HOME)/X-Plane 12/Resources/plugins/$(PLUGIN)/64/lin.xpl"
+
+# .PHONY: all clean install
 
 OS ?= lin
+CXX := g++
 
-ifeq ($(OS),lin)
-    CXX = g++
-    DEFINES = -DLIN
-    OUTPUT = build/lin/lin.xpl
-endif
+BUILD := build/$(OS)
+SDK := SDK
 
-ifeq ($(OS),win)
-    CXX = x86_64-w64-mingw32-g++
-    DEFINES = -DIBM
-    OUTPUT = build/win/win.xpl
-endif
+SRC := $(wildcard src/*.cpp)
+OBJ := $(SRC:src/%.cpp=$(BUILD)/%.o)
 
-ifeq ($(OS),mac)
-    CXX = clang++
-    DEFINES = -DAPL
-    OUTPUT = build/mac/mac.xpl
-endif
+TARGET := $(BUILD)/$(OS).xpl
 
 CXXFLAGS := \
     -std=c++20 \
@@ -36,30 +86,30 @@ CXXFLAGS := \
     -I$(SDK)/CHeaders/XPLM \
     -I$(SDK)/CHeaders/Wrappers
 
-CXXFLAGS += -DLIN
+ifeq ($(OS),lin)
+    CXXFLAGS += -DLIN
+endif
 
-LDFLAGS := \
-    -shared
+ifeq ($(OS),win)
+    CXXFLAGS += -DIBM
+endif
 
-TARGET := build/lin.xpl
+ifeq ($(OS),mac)
+    CXXFLAGS += -DAPL
+endif
 
 all: $(TARGET)
 
-build:
-	mkdir -p build
+$(BUILD)/:
+	mkdir -p $@
 
-build/%.o: src/%.cpp | build
+$(BUILD)/%.o: src/%.cpp | $(BUILD)/
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET): $(OBJ)
-	$(CXX) $(OBJ) $(LDFLAGS) -o $@
+	$(CXX) $(OBJ) -shared -o $@
 
 clean:
 	rm -rf build
 
-# install: $(TARGET)
-# 	mkdir -p "$(HOME)/X-Plane 12/Resources/plugins/$(PLUGIN)/64"
-# 	cp $(TARGET) \
-# 	   "$(HOME)/X-Plane 12/Resources/plugins/$(PLUGIN)/64/lin.xpl"
-
-.PHONY: all clean install
+.PHONY: all clean
