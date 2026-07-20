@@ -56,7 +56,7 @@ jobs:
 
       - name: Create zip
         run: |
-          zip -r MyPlugin.zip OttoThrottle
+          zip -r OttoThrottle.zip OttoThrottle
 
       - name: Upload package
         uses: actions/upload-artifact@v7
