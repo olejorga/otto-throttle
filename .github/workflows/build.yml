@@ -1,25 +1,32 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: lin
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@latest
 
       - name: Build
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            make OS=lin
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            make OS=win
-          else
-            make OS=mac
-          fi
+        run: make OS=${{ matrix.target }}
+
+      - name: Upload
+        uses: actions/upload-artifact@latest
+        with:
+          name: ${{ matrix.target }}
+          path: build/${{ matrix.target }}/*.xpl
