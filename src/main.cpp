@@ -197,8 +197,8 @@ static void EnableAutoThrottle(bool enable)
     g_integral   = 0.0f;
     g_prev_error = 0.0f;
 
-    if (dr_override_throttles)
-        XPLMSetDatai(dr_override_throttles, enable ? 1 : 0);
+    // if (dr_override_throttles)
+    //     XPLMSetDatai(dr_override_throttles, enable ? 1 : 0);
 
     if (!enable)
     {
