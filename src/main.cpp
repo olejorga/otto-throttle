@@ -31,6 +31,7 @@
 #include "XPLMDataAccess.h"
 #include "XPLMProcessing.h"
 #include "XPLMUtilities.h"
+#include "XPLMPlanes.h"
 
 // ---------------------------------------------------------------------
 // Config / tuning
@@ -75,6 +76,7 @@ static float g_prev_error = 0.0f;
 static void        LoadConfig();
 static void        MenuHandler(void *inMenuRef, void *inItemRef);
 static float       FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void *refcon);
+static std::string GetAircraftDirectory();
 static std::string GetPluginDirectory();
 static void        EnableAutoThrottle(bool enable);
 static void        RefreshMenuCheckmark();
@@ -256,6 +258,26 @@ static std::string Trim(const std::string &s)
     return s.substr(a, b - a + 1);
 }
 
+static std::string GetAircraftDirectory()
+{
+    char acf_file[256] = {0};
+    char acf_path[512] = {0};
+
+    // Index 0 = the user's aircraft (as opposed to AI/multiplayer planes)
+    XPLMGetNthAircraftModel(0, acf_file, acf_path);
+
+    std::string full(acf_path);
+    if (full.empty())
+        return "";
+
+    char sep = XPLMGetDirectorySeparator()[0];
+    size_t last = full.find_last_of(sep);
+    if (last == std::string::npos)
+        return "";
+
+    return full.substr(0, last); // strip the .acf filename, keep the directory
+}
+
 static std::string GetPluginDirectory()
 {
     char path[512];
@@ -312,12 +334,24 @@ static bool TryLoadFrom(const std::string &fullPath)
 static void LoadConfig()
 {
     char sep = XPLMGetDirectorySeparator()[0];
-    std::string root = GetPluginDirectory();
 
-    // 1) Plugin root directory: …/AutoThrottle/autothrottle.cfg
+    // 1) Aircraft directory: …/Aircraft/<SomePlane>/autothrottle.cfg
+    std::string acfDir = GetAircraftDirectory();
+    if (!acfDir.empty())
+    {
+        std::string candidateAcf = acfDir + sep + kConfigFileName;
+        if (TryLoadFrom(candidateAcf))
+        {
+            XPLMDebugString(("[AutoThrottle] Loaded config: " + candidateAcf + "\n").c_str());
+            return;
+        }
+    }
+
+    // 2) Plugin root directory (fallback): …/AutoThrottle/autothrottle.cfg
+    std::string root = GetPluginDirectory();
     std::string candidate1 = root + sep + kConfigFileName;
 
-    // 2) Same directory as the binary (…/AutoThrottle/64/autothrottle.cfg)
+    // 3) Same directory as the binary (fallback): …/AutoThrottle/64/autothrottle.cfg
     char path[512];
     XPLMGetPluginInfo(XPLMGetMyID(), nullptr, path, nullptr, nullptr);
     std::string binDir(path);
@@ -328,18 +362,18 @@ static void LoadConfig()
 
     if (TryLoadFrom(candidate1))
     {
-        XPLMDebugString(("[OttoThrottle] Loaded config: " + candidate1 + "\n").c_str());
+        XPLMDebugString(("[AutoThrottle] Loaded config: " + candidate1 + "\n").c_str());
         return;
     }
     if (TryLoadFrom(candidate2))
     {
-        XPLMDebugString(("[OttoThrottle] Loaded config: " + candidate2 + "\n").c_str());
+        XPLMDebugString(("[AutoThrottle] Loaded config: " + candidate2 + "\n").c_str());
         return;
     }
 
     char msg[256];
     snprintf(msg, sizeof(msg),
-              "[OttoThrottle] No config file found, using defaults "
+              "[AutoThrottle] No config file found, using defaults "
               "(kp=%.4f ki=%.4f kd=%.4f)\n",
               g_cfg.kp, g_cfg.ki, g_cfg.kd);
     XPLMDebugString(msg);
