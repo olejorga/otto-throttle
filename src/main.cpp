@@ -226,8 +226,6 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
     
     // XPLMSetDataf(drThrottleSetting, new_throttle);
 
-    float throttle = std::max(0.0f, std::min(1.0f, output));
-
     int num_engines = drNumEngines ? XPLMGetDatai(drNumEngines) : cMaxEngines;
     if (num_engines <= 0 || num_engines > cMaxEngines)
     {
@@ -239,7 +237,7 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
 
     for (int i = 0; i < num_engines; ++i)
     {
-        throttle_values[i] = throttle;
+        throttle_values[i] = std::max(0.0f, std::min(1.0f, throttle_values[i] + output));;
     }
 
     XPLMSetDatavf(drThrottleArray, throttle_values, 0, num_engines);
