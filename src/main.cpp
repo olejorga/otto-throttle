@@ -153,7 +153,17 @@ PLUGIN_API void XPluginDisable(void)
 // =====================================================================
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void *inParam)
 {
-    (void)inFrom; (void)inMsg; (void)inParam;
+    (void)inFrom;
+
+    if (inMsg == XPLM_MSG_PLANE_LOADED)
+    {
+        // inParam is the plane index; 0 = user's aircraft
+        if (reinterpret_cast<intptr_t>(inParam) == 0)
+        {
+            LoadConfig();
+            XPLMDebugString("[AutoThrottle] Aircraft changed, config reloaded.\n");
+        }
+    }
 }
 
 // =====================================================================
