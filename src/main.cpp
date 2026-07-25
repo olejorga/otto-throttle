@@ -51,8 +51,6 @@ static bool gOttoThrottleEnabled = false;
 
 static XPLMDataRef drTargetSpeedKts = nullptr; // sim/cockpit2/autopilot/airspeed_dial_kts
 static XPLMDataRef drCurrentSpeedKts = nullptr; // sim/flightmodel/position/indicated_airspeed
-static XPLMDataRef drNumEngines = nullptr; // sim/aircraft/engine/acf_num_engines
-static XPLMDataRef drThrottleArray = nullptr; // sim/flightmodel/engine/ENGN_thro
 static XPLMDataRef drThrottleSetting = nullptr; // sim/cockpit2/engine/actuators/throttle_ratio_all
 static XPLMDataRef drOverrideThrottles = nullptr; // sim/operation/override/override_throttles
 
@@ -82,11 +80,9 @@ PLUGIN_API int XPluginStart(char *outName, char *outSig, char *outDesc)
     drTargetSpeedKts = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts");
     drCurrentSpeedKts = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed");
     drThrottleSetting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
-    drNumEngines = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines");
-    drThrottleArray = XPLMFindDataRef("sim/flightmodel/engine/ENGN_thro");
     drOverrideThrottles = XPLMFindDataRef("sim/operation/override/override_throttles");
 
-    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting || !drNumEngines || !drThrottleArray || !drOverrideThrottles)
+    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting || !drOverrideThrottles)
     {
         XPLMDebugString("[OttoThrottle] ERROR: one or more required datarefs not found.\n");
     }
@@ -203,12 +199,6 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
     float target_kts  = XPLMGetDataf(drTargetSpeedKts);
     float current_kts = XPLMGetDataf(drCurrentSpeedKts);
 
-    // If the MCP speed bug is at 0 (not set), don't fight the pilot.
-    // if (target_kts <= 0.0f)
-    // {
-    //     return interval;
-    // }
-
     float dt = elapsedMe > 0.0f ? elapsedMe : interval;
 
     float error = target_kts - current_kts;
@@ -221,28 +211,12 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
 
     float output = gCfg.kp * error + gCfg.ki * gIntegral + gCfg.kd * derivative;
 
-    // float current_throttle = XPLMGetDataf(drThrottleSetting);
-    // float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
+    float current_throttle = XPLMGetDataf(drThrottleSetting);
+    float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
     
-    // XPLMSetDataf(drThrottleSetting, new_throttle);
-
-    int num_engines = drNumEngines ? XPLMGetDatai(drNumEngines) : cMaxEngines;
-    if (num_engines <= 0 || num_engines > cMaxEngines)
-    {
-        num_engines = cMaxEngines;
-    }
-
-    float throttle_values[cMaxEngines];
-    XPLMGetDatavf(drThrottleArray, throttle_values, 0, cMaxEngines);
-
-    for (int i = 0; i < num_engines; ++i)
-    {
-        throttle_values[i] = std::max(0.0f, std::min(1.0f, throttle_values[i] + output));;
-    }
-
-    XPLMSetDatavf(drThrottleArray, throttle_values, 0, num_engines);
+    XPLMSetDataf(drThrottleSetting, new_throttle);
     
-    return interval; // reschedule at fixed rate
+    return interval;
 }
 
 // =====================================================================
