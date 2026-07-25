@@ -26,64 +26,49 @@
 #include <string>
 #include <algorithm>
 
-#include "XPLMPlugin.h"
-#include "XPLMMenus.h"
-#include "XPLMDataAccess.h"
-#include "XPLMProcessing.h"
-#include "XPLMUtilities.h"
-#include "XPLMPlanes.h"
+#include <XPLMPlugin.h>
+#include <XPLMMenus.h>
+#include <XPLMDataAccess.h>
+#include <XPLMProcessing.h>
+#include <XPLMUtilities.h>
+#include <XPLMPlanes.h>
 
-// ---------------------------------------------------------------------
-// Config / tuning
-// ---------------------------------------------------------------------
 struct PIDConfig
 {
     float kp = 0.05f;
     float ki = 0.02f;
     float kd = 0.01f;
-    float update_hz = 10.0f;   // how often the flight loop runs
+    float update_hz = 10.0f;
 };
 
-static PIDConfig g_cfg;
+static PIDConfig gCfg;
+static const char* cCfgFileName = "otto-throttle.cfg";
 
-static const char *kConfigFileName = "otto-throttle.cfg";
+static XPLMMenuID gMenuId = nullptr;
+static int gMenuContainer = -1;
+static int gEnableItemIdx = -1;
+static bool gOttoThrottleEnabled = false;
 
-// ---------------------------------------------------------------------
-// Plugin / menu state
-// ---------------------------------------------------------------------
-static XPLMMenuID g_menu_id         = nullptr;
-static int        g_menu_container  = -1;
-static int        g_enable_item_idx = -1;
-static bool       g_at_enabled      = false;
+static XPLMDataRef drTargetSpeedKts = nullptr; // sim/cockpit2/autopilot/airspeed_dial_kts
+static XPLMDataRef drCurrentSpeedKts = nullptr; // sim/flightmodel/position/indicated_airspeed
+static XPLMDataRef drNumEngines = nullptr; // sim/aircraft/engine/acf_num_engines
+static XPLMDataRef drThrottleArray = nullptr; // sim/flightmodel/engine/ENGN_thro
+static XPLMDataRef drThrottleSetting = nullptr; // sim/cockpit2/engine/actuators/throttle_ratio_all
+static XPLMDataRef drOverrideThrottles = nullptr; // sim/operation/override/override_throttles
 
-// ---------------------------------------------------------------------
-// Datarefs
-// ---------------------------------------------------------------------
-static XPLMDataRef dr_target_speed_kts   = nullptr; // sim/cockpit2/autopilot/airspeed_dial_kts
-static XPLMDataRef dr_current_speed_kts  = nullptr; // sim/flightmodel/position/indicated_airspeed
-static XPLMDataRef dr_throttle_setting   = nullptr; // sim/cockpit2/engine/actuators/throttle_ratio_all
-static XPLMDataRef dr_override_throttles = nullptr; // sim/operation/override/override_throttles
+static float gIntegral = 0.0f;
+static float gPrevError = 0.0f;
 
-// ---------------------------------------------------------------------
-// PID state
-// ---------------------------------------------------------------------
-static float g_integral   = 0.0f;
-static float g_prev_error = 0.0f;
+static const int cMaxEngines = 8;
 
-// ---------------------------------------------------------------------
-// Forward declarations
-// ---------------------------------------------------------------------
-static void        LoadConfig();
-static void        MenuHandler(void *inMenuRef, void *inItemRef);
-static float       FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void *refcon);
+static void LoadConfig();
+static void MenuHandler(void *inMenuRef, void *inItemRef);
+static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void *refcon);
 static std::string GetAircraftDirectory();
 static std::string GetPluginDirectory();
-static void        EnableAutoThrottle(bool enable);
-static void        RefreshMenuCheckmark();
+static void EnableOttoThrottle(bool enable);
+static void RefreshMenuCheckmark();
 
-// =====================================================================
-// XPluginStart
-// =====================================================================
 PLUGIN_API int XPluginStart(char *outName, char *outSig, char *outDesc)
 {
     strcpy(outName, "Otto Throttle");
@@ -91,51 +76,44 @@ PLUGIN_API int XPluginStart(char *outName, char *outSig, char *outDesc)
     strcpy(outDesc, "A adjustable PID based auto-throttle for X-Plane 12");
 
     // XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
-
-    // ---- Load PID gains from config file --------------------------
+    
     LoadConfig();
 
-    // ---- Resolve datarefs ------------------------------------------
-    dr_target_speed_kts   = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts");
-    dr_current_speed_kts  = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed");
-    dr_throttle_setting   = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
-    dr_override_throttles = XPLMFindDataRef("sim/operation/override/override_throttles");
+    drTargetSpeedKts = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts");
+    drCurrentSpeedKts = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed");
+    drThrottleSetting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    drNumEngines = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines");
+    drThrottleArray = XPLMFindDataRef("sim/flightmodel/engine/ENGN_thro");
+    drOverrideThrottles = XPLMFindDataRef("sim/operation/override/override_throttles");
 
-    if (!dr_target_speed_kts || !dr_current_speed_kts ||
-        !dr_throttle_setting   || !dr_override_throttles)
+    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting || !drNumEngines || !drThrottleArray || !drOverrideThrottles)
     {
         XPLMDebugString("[OttoThrottle] ERROR: one or more required datarefs not found.\n");
     }
 
-    // ---- Build "Plugins" submenu ------------------------------------
-    g_menu_container = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "Otto Throttle", nullptr, 0);
-    g_menu_id = XPLMCreateMenu("Otto Throttle", XPLMFindPluginsMenu(), g_menu_container, MenuHandler, nullptr);
+    gMenuContainer = XPLMAppendMenuItem(XPLMFindPluginsMenu(), "Otto Throttle", nullptr, 0);
+    gMenuId = XPLMCreateMenu("Otto Throttle", XPLMFindPluginsMenu(), gMenuContainer, MenuHandler, nullptr);
 
-    g_enable_item_idx = XPLMAppendMenuItem(g_menu_id, "Enable Otto Throttle", (void *)"toggle_at", 0);
-    XPLMAppendMenuItem(g_menu_id, "Reinflate Otto", (void *)"reload_cfg", 0);
+    gEnableItemIdx = XPLMAppendMenuItem(gMenuId, "Enable Otto Throttle", (void*)"toggle_at", 0);
+    XPLMAppendMenuItem(gMenuId, "Reinflate Otto", (void*)"reload_cfg", 0);
 
     RefreshMenuCheckmark();
 
-    // ---- Register the flight loop (starts inactive) ----------------
     XPLMRegisterFlightLoopCallback(FlightLoopCallback, -1.0f, nullptr);
 
     return 1;
 }
 
-// =====================================================================
-// XPluginStop
-// =====================================================================
 PLUGIN_API void XPluginStop(void)
 {
     XPLMUnregisterFlightLoopCallback(FlightLoopCallback, nullptr);
 
-    if (g_menu_id)
-        XPLMDestroyMenu(g_menu_id);
+    if (gMenuId)
+    {
+        XPLMDestroyMenu(gMenuId);
+    }
 }
 
-// =====================================================================
-// XPluginEnable / Disable
-// =====================================================================
 PLUGIN_API int XPluginEnable(void)
 {
     return 1;
@@ -143,21 +121,15 @@ PLUGIN_API int XPluginEnable(void)
 
 PLUGIN_API void XPluginDisable(void)
 {
-    // Make sure we hand control back to the pilot if the plugin
-    // itself gets disabled while the autothrottle was active.
-    EnableAutoThrottle(false);
+    EnableOttoThrottle(false);
 }
 
-// =====================================================================
-// XPluginReceiveMessage
-// =====================================================================
 PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void *inParam)
 {
     (void)inFrom;
 
     if (inMsg == XPLM_MSG_PLANE_LOADED)
     {
-        // inParam is the plane index; 0 = user's aircraft
         if (reinterpret_cast<intptr_t>(inParam) == 0)
         {
             LoadConfig();
@@ -166,9 +138,6 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void *inPa
     }
 }
 
-// =====================================================================
-// Menu handling
-// =====================================================================
 static void MenuHandler(void *inMenuRef, void *inItemRef)
 {
     (void)inMenuRef;
@@ -176,7 +145,7 @@ static void MenuHandler(void *inMenuRef, void *inItemRef)
 
     if (strcmp(item, "toggle_at") == 0)
     {
-        EnableAutoThrottle(!g_at_enabled);
+        EnableOttoThrottle(!gOttoThrottleEnabled);
     }
     else if (strcmp(item, "reload_cfg") == 0)
     {
@@ -187,24 +156,25 @@ static void MenuHandler(void *inMenuRef, void *inItemRef)
 
 static void RefreshMenuCheckmark()
 {
-    if (g_menu_id && g_enable_item_idx >= 0)
+    if (gMenuId && gEnableItemIdx >= 0)
     {
-        XPLMCheckMenuItem(g_menu_id, g_enable_item_idx,
-                           g_at_enabled ? xplm_Menu_Checked : xplm_Menu_Unchecked);
+        XPLMCheckMenuItem(gMenuId, gEnableItemIdx, gOttoThrottleEnabled ? xplm_Menu_Checked : xplm_Menu_Unchecked);
     }
 }
 
-static void EnableAutoThrottle(bool enable)
+static void EnableOttoThrottle(bool enable)
 {
-    g_at_enabled = enable;
+    gOttoThrottleEnabled = enable;
 
     // Reset PID state whenever we (re)engage, to avoid a kick from
     // stale integrator/derivative values.
-    g_integral   = 0.0f;
-    g_prev_error = 0.0f;
+    gIntegral   = 0.0f;
+    gPrevError = 0.0f;
 
-    // if (dr_override_throttles)
-    //     XPLMSetDatai(dr_override_throttles, enable ? 1 : 0);
+    if (drOverrideThrottles)
+    {
+        XPLMSetDatai(drOverrideThrottles, enable ? 1 : 0);
+    }
 
     if (!enable)
     {
@@ -217,42 +187,62 @@ static void EnableAutoThrottle(bool enable)
     XPLMDebugString(enable ? "[OttoThrottle] Engaged.\n" : "[OttoThrottle] Disengaged.\n");
 }
 
-// =====================================================================
-// Flight loop: runs the PID and writes throttle commands
-// =====================================================================
 static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, void *refcon)
 {
-    (void)elapsedSim; (void)counter; (void)refcon;
+    (void)elapsedSim;
+    (void)counter;
+    (void)refcon;
 
-    const float interval = 1.0f / g_cfg.update_hz;
+    const float interval = 1.0f / gCfg.update_hz;
 
-    if (!g_at_enabled || !dr_target_speed_kts || !dr_current_speed_kts || !dr_throttle_setting)
+    if (!gOttoThrottleEnabled || !drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting)
+    {
         return interval;
+    }
 
-    float target_kts  = XPLMGetDataf(dr_target_speed_kts);
-    float current_kts = XPLMGetDataf(dr_current_speed_kts);
+    float target_kts  = XPLMGetDataf(drTargetSpeedKts);
+    float current_kts = XPLMGetDataf(drCurrentSpeedKts);
 
     // If the MCP speed bug is at 0 (not set), don't fight the pilot.
     // if (target_kts <= 0.0f)
+    // {
     //     return interval;
+    // }
 
     float dt = elapsedMe > 0.0f ? elapsedMe : interval;
 
     float error = target_kts - current_kts;
 
-    // --- PID terms ----------------------------------------------------
-    g_integral += error * dt;
+    gIntegral += error * dt;
 
-    float derivative = (error - g_prev_error) / dt;
-    float output = g_cfg.kp * error + g_cfg.ki * g_integral + g_cfg.kd * derivative;
-    
-    // Throttle is a 0..1 ratio.
-    float current_throttle = XPLMGetDataf(dr_throttle_setting);
-    float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
-    
-    XPLMSetDataf(dr_throttle_setting, new_throttle);
+    float derivative = (error - gPrevError) / dt;
 
-    g_prev_error = error;
+    gPrevError = error;
+
+    float output = gCfg.kp * error + gCfg.ki * gIntegral + gCfg.kd * derivative;
+
+    // float current_throttle = XPLMGetDataf(drThrottleSetting);
+    // float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
+    
+    // XPLMSetDataf(drThrottleSetting, new_throttle);
+
+    float throttle = std::max(0.0f, std::min(1.0f, output));
+
+    int num_engines = drNumEngines ? XPLMGetDatai(drNumEngines) : cMaxEngines;
+    if (num_engines <= 0 || num_engines > cMaxEngines)
+    {
+        num_engines = cMaxEngines;
+    }
+
+    float throttle_values[cMaxEngines];
+    XPLMGetDatavf(drThrottleArray, throttle_values, 0, cMaxEngines);
+
+    for (int i = 0; i < num_engines; ++i)
+    {
+        throttle_values[i] = throttle;
+    }
+
+    XPLMSetDatavf(drThrottleArray, throttle_values, 0, num_engines);
     
     return interval; // reschedule at fixed rate
 }
@@ -332,10 +322,10 @@ static bool TryLoadFrom(const std::string &fullPath)
 
         float fval = static_cast<float>(atof(val.c_str()));
 
-        if (key == "kp")        g_cfg.kp = fval;
-        else if (key == "ki")   g_cfg.ki = fval;
-        else if (key == "kd")   g_cfg.kd = fval;
-        else if (key == "hz")   g_cfg.update_hz = fval;
+        if (key == "kp")        gCfg.kp = fval;
+        else if (key == "ki")   gCfg.ki = fval;
+        else if (key == "kd")   gCfg.kd = fval;
+        else if (key == "hz")   gCfg.update_hz = fval;
     }
 
     return true;
@@ -349,7 +339,7 @@ static void LoadConfig()
     std::string acfDir = GetAircraftDirectory();
     if (!acfDir.empty())
     {
-        std::string candidateAcf = acfDir + sep + kConfigFileName;
+        std::string candidateAcf = acfDir + sep + cCfgFileName;
         if (TryLoadFrom(candidateAcf))
         {
             XPLMDebugString(("[AutoThrottle] Loaded config: " + candidateAcf + "\n").c_str());
@@ -359,7 +349,7 @@ static void LoadConfig()
 
     // 2) Plugin root directory (fallback): …/AutoThrottle/autothrottle.cfg
     std::string root = GetPluginDirectory();
-    std::string candidate1 = root + sep + kConfigFileName;
+    std::string candidate1 = root + sep + cCfgFileName;
 
     // 3) Same directory as the binary (fallback): …/AutoThrottle/64/autothrottle.cfg
     char path[512];
@@ -367,8 +357,8 @@ static void LoadConfig()
     std::string binDir(path);
     size_t last = binDir.find_last_of(sep);
     std::string candidate2 = (last == std::string::npos)
-        ? std::string(kConfigFileName)
-        : binDir.substr(0, last) + sep + kConfigFileName;
+        ? std::string(cCfgFileName)
+        : binDir.substr(0, last) + sep + cCfgFileName;
 
     if (TryLoadFrom(candidate1))
     {
@@ -385,6 +375,6 @@ static void LoadConfig()
     snprintf(msg, sizeof(msg),
               "[AutoThrottle] No config file found, using defaults "
               "(kp=%.4f ki=%.4f kd=%.4f)\n",
-              g_cfg.kp, g_cfg.ki, g_cfg.kd);
+              gCfg.kp, gCfg.ki, gCfg.kd);
     XPLMDebugString(msg);
 }
