@@ -32,7 +32,6 @@ static bool gOttoThrottleEnabled = false;
 static XPLMDataRef drTargetSpeedKts = nullptr;
 static XPLMDataRef drCurrentSpeedKts = nullptr;
 static XPLMDataRef drThrottleSetting = nullptr;
-static XPLMDataRef drOverrideThrottles = nullptr;
 
 static float gIntegral = 0.0f;
 static float gPrevError = 0.0f;
@@ -57,9 +56,8 @@ PLUGIN_API int XPluginStart(char *outName, char *outSig, char *outDesc)
     drTargetSpeedKts = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts");
     drCurrentSpeedKts = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed");
     drThrottleSetting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
-    drOverrideThrottles = XPLMFindDataRef("sim/operation/override/override_throttles");
 
-    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting || !drOverrideThrottles)
+    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting)
     {
         XPLMDebugString("[OttoThrottle] ERROR: one or more required datarefs not found.\n");
     }
@@ -140,11 +138,6 @@ static void EnableOttoThrottle(bool enable)
     gOttoThrottleEnabled = enable;
     gIntegral   = 0.0f;
     gPrevError = 0.0f;
-
-    if (drOverrideThrottles)
-    {
-        XPLMSetDatai(drOverrideThrottles, enable ? 1 : 0);
-    }
 
     RefreshMenuCheckmark();
 
