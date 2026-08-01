@@ -1,0 +1,67 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: lin
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build
+        run: make OS=${{ matrix.target }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.target }}
+          path: build/${{ matrix.target }}/*.xpl
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux
+        uses: actions/download-artifact@v7
+        with:
+          name: lin
+          path: OttoThrottle/64
+
+      - name: Download Windows
+        uses: actions/download-artifact@v7
+        with:
+          name: win
+          path: OttoThrottle/64
+
+      - name: Download Mac
+        uses: actions/download-artifact@v7
+        with:
+          name: mac
+          path: OttoThrottle/64
+
+      - name: Create zip
+        run: |
+          zip -r OttoThrottle.zip OttoThrottle
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: otto-throttle
+          path: OttoThrottle.zip
