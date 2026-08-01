@@ -14,9 +14,9 @@ Otto Throttle is a configurable PID controller based auto-throttle plugin for X-
 ## Installation
 
 1.  Download the latest version from the releases page.
-2.  Place the extracted `Otto Throttle` folder inside your plugins folder:
+2.  Place the extracted `OttoThrottle` folder inside your plugins folder:
     ```
-    C:\<PATH TO XP>\Resources\plugins\Otto Throttle
+    C:\<PATH TO XP>\Resources\plugins\OttoThrottle
     ```
 
 ## Configuration
