@@ -31,7 +31,10 @@ static bool gOttoThrottleEnabled = false;
 
 static XPLMDataRef drTargetSpeedKts = nullptr;
 static XPLMDataRef drCurrentSpeedKts = nullptr;
-static XPLMDataRef drThrottleSetting = nullptr;
+// static XPLMDataRef drThrottleSetting = nullptr;
+static XPLMDataRef drNumEngines = nullptr;
+static XPLMDataRef drThrottleArray = nullptr;
+static XPLMDataRef drOverrideThrottles = nullptr;
 
 static float gIntegral = 0.0f;
 static float gPrevError = 0.0f;
@@ -55,9 +58,12 @@ PLUGIN_API int XPluginStart(char *outName, char *outSig, char *outDesc)
 
     drTargetSpeedKts = XPLMFindDataRef("sim/cockpit2/autopilot/airspeed_dial_kts");
     drCurrentSpeedKts = XPLMFindDataRef("sim/flightmodel/position/indicated_airspeed");
-    drThrottleSetting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    // drThrottleSetting = XPLMFindDataRef("sim/cockpit2/engine/actuators/throttle_ratio_all");
+    drNumEngines = XPLMFindDataRef("sim/aircraft/engine/acf_num_engines");
+    drThrottleArray = XPLMFindDataRef("sim/flightmodel/engine/ENGN_thro_use");
+    drOverrideThrottles = XPLMFindDataRef("sim/operation/override/override_throttles");
 
-    if (!drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting)
+    if (!drTargetSpeedKts || !drCurrentSpeedKts || /* !drThrottleSetting */ !drNumEngines || !drThrottleArray || !drOverrideThrottles)
     {
         XPLMDebugString("[OttoThrottle] ERROR: one or more required datarefs not found.\n");
     }
@@ -139,6 +145,11 @@ static void EnableOttoThrottle(bool enable)
     gIntegral   = 0.0f;
     gPrevError = 0.0f;
 
+    if (drOverrideThrottles)
+    {
+        XPLMSetDatai(drOverrideThrottles, gOttoThrottleEnabled ? 1 : 0);
+    }
+
     RefreshMenuCheckmark();
 
     XPLMDebugString(enable ? "[OttoThrottle] Engaged.\n" : "[OttoThrottle] Disengaged.\n");
@@ -152,7 +163,7 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
 
     const float interval = 1.0f / gCfg.update_hz;
 
-    if (!gOttoThrottleEnabled || !drTargetSpeedKts || !drCurrentSpeedKts || !drThrottleSetting)
+    if (!gOttoThrottleEnabled || !drTargetSpeedKts || !drCurrentSpeedKts || /* !drThrottleSetting */ !drNumEngines || !drThrottleArray || !drOverrideThrottles)
     {
         return interval;
     }
@@ -170,10 +181,25 @@ static float FlightLoopCallback(float elapsedMe, float elapsedSim, int counter, 
 
     float output = gCfg.kp * error + gCfg.ki * gIntegral + gCfg.kd * derivative;
 
-    float current_throttle = XPLMGetDataf(drThrottleSetting);
-    float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
+    // float current_throttle = XPLMGetDataf(drThrottleSetting);
+    // float new_throttle = std::max(0.0f, std::min(1.0f, current_throttle + output));
     
-    XPLMSetDataf(drThrottleSetting, new_throttle);
+    // XPLMSetDataf(drThrottleSetting, new_throttle);
+
+    int numEngines = drNumEngines ? XPLMGetDatai(drNumEngines) : cMaxEngines;
+
+    if (numEngines <= 0 || numEngines > cMaxEngines) {
+        numEngines = cMaxEngines;
+    }
+
+    float throttleValues[cMaxEngines];
+    XPLMGetDatavf(drThrottleArray, throttleValues, 0, cMaxEngines);
+
+    for (int i = 0; i < numEngines; ++i) {
+        throttleValues[i] = std::max(0.0f, std::min(1.0f, throttleValues[0] + output));;
+    }
+
+    XPLMSetDatavf(drThrottleArray, throttleValues, 0, numEngines);
     
     return interval;
 }
